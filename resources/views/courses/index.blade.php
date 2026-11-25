@@ -26,23 +26,39 @@
     </div>
 
     <div class="card-body" style="padding-bottom: 0;">
-        <form action="{{ route('courses.index') }}" method="GET" style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+        <form action="{{ route('courses.index') }}" method="GET" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1.5rem;">
             <div style="flex: 1; min-width: 240px;">
-                <input 
-                    type="text" 
-                    name="search" 
-                    class="form-control" 
-                    placeholder="Cari berdasarkan kode mata kuliah, nama, atau semester..." 
-                    value="{{ request('search') }}"
-                >
+                <label>
+                    Cari mata kuliah
+                    <input type="text" name="search" class="form-control"
+                        placeholder="Contoh: IF301 atau Laravel" value="{{ request('search') }}">
+                </label>
             </div>
             
             {{-- TODO 6: Tambahkan dropdown filter Semester dan dropdown Urutkan (Sort) di sini --}}
+            <label>
+                Semester
+                <select name="semester" class="form-control">
+                    <option value="">Semua semester</option>
+                    @foreach($semesters as $semester)
+                        <option value="{{ $semester }}" @selected(request('semester') === $semester)>{{ $semester }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <label>
+                Urutkan
+                <select name="sort" class="form-control">
+                    <option value="nama_asc" @selected(request('sort', 'nama_asc') === 'nama_asc')>Nama A–Z</option>
+                    <option value="nama_desc" @selected(request('sort') === 'nama_desc')>Nama Z–A</option>
+                    <option value="sks_desc" @selected(request('sort') === 'sks_desc')>SKS tertinggi</option>
+                    <option value="sks_asc" @selected(request('sort') === 'sks_asc')>SKS terendah</option>
+                </select>
+            </label>
             
             <button type="submit" class="btn btn-secondary">
                 Filter &amp; Cari
             </button>
-            @if(request('search'))
+            @if(request()->hasAny(['search', 'semester', 'sort']))
                 <a href="{{ route('courses.index') }}" class="btn btn-secondary" style="color: var(--slate-500);">
                     Reset
                 </a>

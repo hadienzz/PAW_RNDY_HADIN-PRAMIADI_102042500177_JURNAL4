@@ -19,7 +19,11 @@ class MataKuliahController extends Controller
         }
 
         $user = Auth::user();
-        $search = $request->input('search');
+        $search = $request->query('search');
+        $semester = $request->query('semester');
+        $sort = $request->query('sort', 'nama_asc');
+
+        abort_if(!is_string($search ?? '') || !is_string($semester ?? '') || !is_string($sort), 400);
 
         if ($user->isDosen()) {
             // Dosen mengelola mata kuliah miliknya sendiri
@@ -29,7 +33,7 @@ class MataKuliahController extends Controller
             $query = MataKuliah::query();
         }
 
-        if ($search) {
+        if (filled($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('kode_mk', 'like', "%{$search}%")
                   ->orWhere('nama_mk', 'like', "%{$search}%")
@@ -38,7 +42,17 @@ class MataKuliahController extends Controller
         }
 
         // TODO 4: Tambahkan logika filter berdasarkan parameter 'semester' dan pengurutan berdasarkan parameter 'sort' (nama_asc, nama_desc, sks_desc, sks_asc)
-        $query->orderBy('nama_mk');
+        if (filled($semester)) {
+            $query->where('semester', $semester);
+        }
+
+        [$column, $direction] = match ($sort) {
+            'nama_desc' => ['nama_mk', 'desc'],
+            'sks_desc' => ['sks', 'desc'],
+            'sks_asc' => ['sks', 'asc'],
+            default => ['nama_mk', 'asc'],
+        };
+        $query->orderBy($column, $direction)->orderBy('id');
 
         $courses = $query->with('dosen')
             ->withCount([
@@ -49,7 +63,9 @@ class MataKuliahController extends Controller
             ->paginate(9)
             ->withQueryString();
 
-        $semesters = MataKuliah::select('semester')->distinct()->pluck('semester');
+        $semesters = MataKuliah::query()
+            ->when($user->isDosen(), fn ($query) => $query->where('dosen_id', $user->id))
+            ->distinct()->orderBy('semester')->pluck('semester');
 
         return view('courses.index', compact('courses', 'semesters'));
     }
